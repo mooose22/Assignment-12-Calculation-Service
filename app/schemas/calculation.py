@@ -1,8 +1,9 @@
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 from datetime import datetime
+
 
 
 class CalculationType(str, Enum):
@@ -64,8 +65,7 @@ class CalculationBase(BaseModel):
 
 
 class CalculationCreate(CalculationBase):
-    """Schema for creating a new calculation"""
-    pass
+    user_id: Optional[Union[str, UUID]] = None
 
 
 class CalculationUpdate(BaseModel):
