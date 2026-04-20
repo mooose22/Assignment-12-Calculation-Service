@@ -4,12 +4,14 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
+
 class CalculationType(str, Enum):
     """Valid calculation types"""
     ADDITION = "addition"
     SUBTRACTION = "subtraction"
     MULTIPLICATION = "multiplication"
     DIVISION = "division"
+
 
 class CalculationBase(BaseModel):
     type: CalculationType = Field(
@@ -28,7 +30,6 @@ class CalculationBase(BaseModel):
     @classmethod
     def validate_type(cls, v):
         allowed = {e.value for e in CalculationType}
-        # Ensure v is a string and check (in lowercase) if it's allowed.
         if not isinstance(v, str) or v.lower() not in allowed:
             raise ValueError(f"Type must be one of: {', '.join(sorted(allowed))}")
         return v.lower()
@@ -40,15 +41,15 @@ class CalculationBase(BaseModel):
             raise ValueError("Input should be a valid list")
         return v
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_inputs(self) -> "CalculationBase":
-        """Validate inputs based on calculation type"""
         if len(self.inputs) < 2:
             raise ValueError("At least two numbers are required for calculation")
+
         if self.type == CalculationType.DIVISION:
-            # Prevent division by zero (skip the first value as numerator)
             if any(x == 0 for x in self.inputs[1:]):
                 raise ValueError("Cannot divide by zero")
+
         return self
 
     model_config = ConfigDict(
@@ -61,26 +62,14 @@ class CalculationBase(BaseModel):
         }
     )
 
-class CalculationCreate(CalculationBase):
-    """Schema for creating a new Calculation"""
-    user_id: UUID = Field(
-        ...,
-        description="UUID of the user who owns this calculation",
-        example="123e4567-e89b-12d3-a456-426614174000"
-    )
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "type": "addition",
-                "inputs": [10.5, 3, 2],
-                "user_id": "123e4567-e89b-12d3-a456-426614174000"
-            }
-        }
-    )
+class CalculationCreate(CalculationBase):
+    """Schema for creating a new calculation"""
+    pass
+
 
 class CalculationUpdate(BaseModel):
-    """Schema for updating an existing Calculation"""
+    """Schema for updating an existing calculation"""
     inputs: Optional[List[float]] = Field(
         None,
         description="Updated list of numeric inputs for the calculation",
@@ -88,9 +77,15 @@ class CalculationUpdate(BaseModel):
         min_items=2
     )
 
-    @model_validator(mode='after')
+    @field_validator("inputs", mode="before")
+    @classmethod
+    def check_inputs_is_list(cls, v):
+        if v is not None and not isinstance(v, list):
+            raise ValueError("Input should be a valid list")
+        return v
+
+    @model_validator(mode="after")
     def validate_inputs(self) -> "CalculationUpdate":
-        """Validate the inputs if they are being updated"""
         if self.inputs is not None and len(self.inputs) < 2:
             raise ValueError("At least two numbers are required for calculation")
         return self
@@ -100,8 +95,9 @@ class CalculationUpdate(BaseModel):
         json_schema_extra={"example": {"inputs": [42, 7]}}
     )
 
+
 class CalculationResponse(CalculationBase):
-    """Schema for reading a Calculation from the database"""
+    """Schema for reading a calculation"""
     id: UUID = Field(
         ...,
         description="Unique UUID of the calculation",
@@ -112,11 +108,17 @@ class CalculationResponse(CalculationBase):
         description="UUID of the user who owns this calculation",
         example="123e4567-e89b-12d3-a456-426614174000"
     )
-    created_at: datetime = Field(..., description="Time when the calculation was created")
-    updated_at: datetime = Field(..., description="Time when the calculation was last updated")
+    created_at: datetime = Field(
+        ...,
+        description="Time when the calculation was created"
+    )
+    updated_at: datetime = Field(
+        ...,
+        description="Time when the calculation was last updated"
+    )
     result: float = Field(
         ...,
-        description="Result of the calculation",
+        description="Computed result of the calculation",
         example=15.5
     )
 
